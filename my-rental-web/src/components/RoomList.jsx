@@ -149,7 +149,7 @@ function RoomList() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/rooms");
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms`);
         if (!response.ok) throw new Error("Fetch failed");
         const data = await response.json();
         // Ánh xạ imageUrl từ backend thành image để UI hiện tại khớp
@@ -185,7 +185,7 @@ function RoomList() {
 
   const handleDeleteRoom = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/rooms/${id}`, { method: "DELETE" });
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms/${id}`, { method: "DELETE" });
       if (response.ok) {
         setRoomList((prev) => prev.filter((r) => r.id !== id));
         setSelectedRoom(null); // Đóng modal sau khi xóa

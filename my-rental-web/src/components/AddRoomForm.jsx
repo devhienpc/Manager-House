@@ -59,7 +59,7 @@ function AddRoomForm({ onAddRoom, onClose }) {
 
     try {
       // Dùng axios gửi dữ liệu thay vì fetch
-      const response = await axios.post("http://localhost:8080/api/rooms", newRoomPayload);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms`, newRoomPayload);
       
       const savedRoom = response.data; // axios tự parse JSON
 

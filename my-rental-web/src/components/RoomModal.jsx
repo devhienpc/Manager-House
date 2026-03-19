@@ -161,7 +161,7 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
                     onClick={async () => {
                       try {
                         const payload = { ...room, status: editStatus, imageUrl: room.imageUrl || room.image };
-                        const res = await fetch(`http://localhost:8080/api/rooms/${room.id}`, {
+                        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms/${room.id}`, {
                           method: "PUT",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify(payload)
