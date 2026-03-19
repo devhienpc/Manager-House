@@ -1,0 +1,21 @@
+/* src/index.css — Tailwind v4 entry point */
+@import "tailwindcss";
+
+/* ── Reset global styles từ Vite template mặc định ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f1f5f9; /* Tailwind slate-100 */
+}
+
+/* Quan trọng: reset #root để KHÔNG interfere với Tailwind grid */
+#root {
+  width: 100%;
+  min-height: 100svh;
+}
