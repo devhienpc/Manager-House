@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
-function RoomModal({ room, onClose, onDelete, onCopy }) {
+function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
   const { isLoggedIn } = useAuth();
   const isAdmin = isLoggedIn;
   const isAvailable = room.status === "Còn trống";
@@ -11,6 +11,10 @@ function RoomModal({ room, onClose, onDelete, onCopy }) {
   const images = room.images?.length > 0 ? room.images : [room.image];
   const [activeImg, setActiveImg] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  // States quản lý trạng thái chỉnh sửa
+  const [isEditing, setIsEditing] = useState(false);
+  const [editStatus, setEditStatus] = useState(room.status);
 
   const handleCopy = () => {
     const text =
@@ -109,9 +113,20 @@ function RoomModal({ room, onClose, onDelete, onCopy }) {
             <div className="flex items-center gap-2">
               <span>🔍</span>
               <span className="font-medium text-gray-700">Trạng thái:</span>
-              <span className={`font-semibold ${isAvailable ? "text-green-600" : "text-red-500"}`}>
-                {room.status}
-              </span>
+              {isEditing ? (
+                <select
+                  value={editStatus}
+                  onChange={(e) => setEditStatus(e.target.value)}
+                  className="border border-blue-400 rounded-lg px-2 py-1 text-sm outline-none bg-blue-50 text-blue-800 font-semibold"
+                >
+                  <option value="Còn trống">Còn trống</option>
+                  <option value="Đã chốt">Đã chốt</option>
+                </select>
+              ) : (
+                <span className={`font-semibold ${isAvailable ? "text-green-600" : "text-red-500"}`}>
+                  {room.status}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <span>💰</span>
@@ -138,14 +153,39 @@ function RoomModal({ room, onClose, onDelete, onCopy }) {
             {/* Nút Admin: Chỉnh sửa + Xóa */}
             {isAdmin && (
               <>
-                <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
-                    bg-amber-50 text-amber-600 border border-amber-300
-                    hover:bg-amber-100 transition-colors cursor-pointer"
-                  onClick={() => alert("🚧 Tính năng Chỉnh sửa sẽ được phát triển ở bước tiếp theo!")}
-                >
-                  ✏️ Chỉnh sửa
-                </button>
+                {isEditing ? (
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                      bg-blue-600 text-white border border-blue-600
+                      hover:bg-blue-700 transition-colors cursor-pointer shadow-md"
+                    onClick={async () => {
+                      try {
+                        const payload = { ...room, status: editStatus, imageUrl: room.imageUrl || room.image };
+                        const res = await fetch(`http://localhost:8080/api/rooms/${room.id}`, {
+                          method: "PUT",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) throw new Error("Cập nhật lỗi");
+                        const data = await res.json();
+                        // Trả lại callback cho RoomList
+                        onUpdate({ ...data, image: data.imageUrl, priceNumber: room.priceNumber });
+                        setIsEditing(false);
+                      } catch(e) { console.error("API error:", e); alert("Không thể lưu thay đổi."); }
+                    }}
+                  >
+                    💾 Lưu cập nhật
+                  </button>
+                ) : (
+                  <button
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold
+                      bg-amber-50 text-amber-600 border border-amber-300
+                      hover:bg-amber-100 transition-colors cursor-pointer"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    ✏️ Chỉnh sửa
+                  </button>
+                )}
                 <button
                   onClick={handleDelete}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold

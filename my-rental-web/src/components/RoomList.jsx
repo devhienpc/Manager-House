@@ -1,5 +1,5 @@
 // src/components/RoomList.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import AddRoomForm from "./AddRoomForm";
 import RoomModal from "./RoomModal";
@@ -21,64 +21,8 @@ function Toast({ message, visible }) {
 }
 
 // ==========================================
-// 1. DỮ LIỆU MẪU — có mảng images[] nhiều ảnh
+// 1. DỮ LIỆU ĐƯỢC LOAD TỪ API (Không dùng mock cứng nữa)
 // ==========================================
-const INITIAL_ROOMS = [
-  {
-    id: 1,
-    title: "Phòng trọ cao cấp Quận 1",
-    priceNumber: 3500000,
-    price: "3.500.000đ / tháng",
-    address: "123 Lý Tự Trọng, Quận 1, TP.HCM",
-    status: "Còn trống",
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: 2,
-    title: "Phòng trọ mini Bình Thạnh",
-    priceNumber: 2800000,
-    price: "2.800.000đ / tháng",
-    address: "45 Xô Viết Nghệ Tĩnh, Bình Thạnh, TP.HCM",
-    status: "Đã chốt",
-    image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&auto=format&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=600&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: 3,
-    title: "Phòng trọ tiện nghi Thủ Đức",
-    priceNumber: 2200000,
-    price: "2.200.000đ / tháng",
-    address: "78 Võ Văn Ngân, TP. Thủ Đức, TP.HCM",
-    status: "Còn trống",
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?w=600&auto=format&fit=crop",
-    ],
-  },
-  {
-    id: 4,
-    title: "Phòng trọ view đẹp Quận 7",
-    priceNumber: 5500000,
-    price: "5.500.000đ / tháng",
-    address: "90 Nguyễn Thị Thập, Quận 7, TP.HCM",
-    status: "Còn trống",
-    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop",
-    images: [
-      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop",
-    ],
-  },
-];
 
 // ==========================================
 // 2. CẤU HÌNH BỘ LỌC GIÁ
@@ -194,13 +138,35 @@ function RoomList() {
   const { isLoggedIn } = useAuth();
   const isAdmin = isLoggedIn;
 
-  const [roomList, setRoomList] = useState(INITIAL_ROOMS);
+  const [roomList, setRoomList] = useState([]);
   const [priceFilter, setPriceFilter] = useState("all");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
-  // State lưu phòng đang được xem chi tiết (null = không mở Modal)
   const [selectedRoom, setSelectedRoom] = useState(null);
+
+  // Lấy dữ liệu từ Backend khi load trang
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/rooms");
+        if (!response.ok) throw new Error("Fetch failed");
+        const data = await response.json();
+        // Ánh xạ imageUrl từ backend thành image để UI hiện tại khớp
+        // parse priceNumber từ chuỗi price nếu cần cho bộ lọc, hoặc viết regex đơn giản
+        const mappedData = data.map(r => {
+           // Giả lập giá số để filter hoạt động (vì DB đang lưu chuỗi "3.000.000đ / tháng")
+           const priceNum = parseInt(r.price.replace(/\D/g, "")) || 0;
+           return { ...r, image: r.imageUrl, priceNumber: priceNum };
+        });
+        // Sắp xếp ID giảm dần (mới nhất lên đầu)
+        setRoomList(mappedData.sort((a,b) => b.id - a.id));
+      } catch (err) {
+        console.error("Lỗi lấy danh sách phòng:", err);
+      }
+    };
+    fetchRooms();
+  }, []);
 
   const showToast = () => {
     setToastVisible(true);
@@ -212,9 +178,21 @@ function RoomList() {
     setShowAddForm(false);
   };
 
-  const handleDeleteRoom = (id) => {
-    setRoomList((prev) => prev.filter((r) => r.id !== id));
-    setSelectedRoom(null); // Đóng modal sau khi xóa
+  const handleUpdateRoom = (updatedRoom) => {
+    setRoomList((prev) => prev.map(r => r.id === updatedRoom.id ? updatedRoom : r));
+    setSelectedRoom(updatedRoom); // Cập nhật luôn UI modal
+  };
+
+  const handleDeleteRoom = async (id) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/rooms/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setRoomList((prev) => prev.filter((r) => r.id !== id));
+        setSelectedRoom(null); // Đóng modal sau khi xóa
+      }
+    } catch (err) {
+      console.error("Lỗi xóa phòng:", err);
+    }
   };
 
   const filteredRooms = roomList.filter((room) => {
@@ -281,6 +259,7 @@ function RoomList() {
           room={selectedRoom}
           onClose={() => setSelectedRoom(null)}
           onDelete={handleDeleteRoom}
+          onUpdate={handleUpdateRoom}
           onCopy={showToast}
         />
       )}

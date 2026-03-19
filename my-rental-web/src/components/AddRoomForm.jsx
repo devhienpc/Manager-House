@@ -1,5 +1,5 @@
-// src/components/AddRoomForm.jsx
 import { useState } from "react";
+import axios from "axios";
 
 // ==========================================
 // GIÁ TRỊ MẶC ĐỊNH CỦA FORM (để reset dễ)
@@ -39,7 +39,7 @@ function AddRoomForm({ onAddRoom, onClose }) {
   };
 
   // Xử lý khi nhấn "Thêm phòng"
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
@@ -47,21 +47,41 @@ function AddRoomForm({ onAddRoom, onClose }) {
       return;
     }
 
-    // Tạo object phòng mới
+    // Tạo object gửi xuống Backend (lưu ý key imageUrl)
     const priceNum = Number(form.priceNumber);
-    const newRoom = {
-      id: Date.now(), // ID duy nhất dựa trên thời gian
+    const newRoomPayload = {
       title: form.title.trim(),
-      priceNumber: priceNum,
       price: priceNum.toLocaleString("vi-VN") + "đ / tháng",
       address: form.address.trim(),
-      image: form.image.trim(),
       status: form.status,
+      imageUrl: form.image.trim(),
     };
 
-    onAddRoom(newRoom);   // Đẩy phòng mới lên RoomList
-    setForm(EMPTY_FORM);  // Reset form về trống
-    setErrors({});
+    try {
+      // Dùng axios gửi dữ liệu thay vì fetch
+      const response = await axios.post("http://localhost:8080/api/rooms", newRoomPayload);
+      
+      const savedRoom = response.data; // axios tự parse JSON
+
+      // Callback ra ngoài danh sách, chuyển API imageUrl => image cho UI tương thích
+      onAddRoom({
+        ...savedRoom,
+        image: savedRoom.imageUrl,
+        priceNumber: priceNum // map lại giá số để filter hoạt động
+      });
+      
+      setForm(EMPTY_FORM);  // Reset form về trống
+      setErrors({});
+    } catch (error) {
+      // In lỗi ra F12 để kiểm tra xem là 403, 404 hay 500
+      console.error("=== LỖI KHI GỌI API ===");
+      console.error(error);
+      if (error.response) {
+        console.error("HTTP Status Code:", error.response.status);
+        console.error("Data trả về từ server:", error.response.data);
+      }
+      alert("Lỗi khi thêm phòng vào database! Bạn hãy nhấn F12 mở Console để xem chi tiết mã lỗi.");
+    }
   };
 
   return (
