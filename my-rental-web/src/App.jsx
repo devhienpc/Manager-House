@@ -7,8 +7,9 @@ import LoginPage from "./components/LoginPage";
 
 function App() {
   return (
-    // BrowserRouter phải bọc ngoài cùng để router hoạt động
-    <BrowserRouter>
+    // BrowserRouter phải bọc ngoài cùng để router hoạt động.
+    // Dùng basename để tự động nhận cấu hình base='/Manager-House/' từ vite.config.js
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* AuthProvider nằm bên trong BrowserRouter để dùng được useNavigate */}
       <AuthProvider>
         {/* Navbar hiển thị trên mọi trang */}
