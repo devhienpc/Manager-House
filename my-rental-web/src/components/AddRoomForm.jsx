@@ -14,7 +14,8 @@ const EMPTY_FORM = {
 
 const AMENITIES_LIST = [
   'Máy lạnh', 'Tủ lạnh', 'Máy giặt', 
-  'Giờ giấc tự do', 'Cho nuôi thú cưng', 'Có hầm xe'
+  'Giờ giấc tự do', 'Cho nuôi thú cưng', 'Có hầm xe',
+  'Tủ bếp', 'Tủ đồ'
 ];
 
 // ==========================================

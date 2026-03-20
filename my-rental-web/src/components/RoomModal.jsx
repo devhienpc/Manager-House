@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getOptimizedImageUrl } from "../utils/cloudinary";
-import { Snowflake, Refrigerator, WashingMachine, Clock, Dog, Car, CheckCircle } from "lucide-react";
+import { Snowflake, Refrigerator, WashingMachine, Clock, Dog, Car, CheckCircle, ChefHat, DoorOpen } from "lucide-react";
 
 const getAmenityIcon = (name) => {
   switch (name) {
@@ -12,6 +12,8 @@ const getAmenityIcon = (name) => {
     case 'Giờ giấc tự do': return <Clock className="w-5 h-5 mx-auto text-orange-400" />;
     case 'Cho nuôi thú cưng': return <Dog className="w-5 h-5 mx-auto text-amber-600" />;
     case 'Có hầm xe': return <Car className="w-5 h-5 mx-auto text-stone-600 dark:text-gray-300" />;
+    case 'Tủ bếp': return <ChefHat className="w-5 h-5 mx-auto text-rose-500" />;
+    case 'Tủ đồ': return <DoorOpen className="w-5 h-5 mx-auto text-teal-600" />;
     default: return <CheckCircle className="w-5 h-5 mx-auto text-green-500" />;
   }
 };
