@@ -1,6 +1,20 @@
 // src/components/RoomModal.jsx
 import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
+import { Snowflake, Refrigerator, WashingMachine, Clock, Dog, Car, CheckCircle } from "lucide-react";
+
+const getAmenityIcon = (name) => {
+  switch (name) {
+    case 'Máy lạnh': return <Snowflake className="w-5 h-5 mx-auto text-blue-500" />;
+    case 'Tủ lạnh': return <Refrigerator className="w-5 h-5 mx-auto text-sky-400" />;
+    case 'Máy giặt': return <WashingMachine className="w-5 h-5 mx-auto text-indigo-400" />;
+    case 'Giờ giấc tự do': return <Clock className="w-5 h-5 mx-auto text-orange-400" />;
+    case 'Cho nuôi thú cưng': return <Dog className="w-5 h-5 mx-auto text-amber-600" />;
+    case 'Có hầm xe': return <Car className="w-5 h-5 mx-auto text-stone-600 dark:text-gray-300" />;
+    default: return <CheckCircle className="w-5 h-5 mx-auto text-green-500" />;
+  }
+};
 
 function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
   const { isLoggedIn } = useAuth();
@@ -19,9 +33,35 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
       : [];
 
   const [lightboxImg, setLightboxImg] = useState(null); // null = đóng lightbox
+  const [currentIndex, setCurrentIndex] = useState(0); // Vị trí ảnh đang hiển thị
+  const [touchStart, setTouchStart]   = useState(null);
+  const [touchEnd, setTouchEnd]       = useState(null);
   const [copied, setCopied]           = useState(false);
   const [isEditing, setIsEditing]     = useState(false);
   const [editStatus, setEditStatus]   = useState(room.status);
+
+  // ── Xử lý vuốt ảnh (Swipe) trên điện thoại ──────────────────────────────
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd || images.length <= 1) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) {
+      setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1)); // Vuốt trái -> next
+    } else if (isRightSwipe) {
+      setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1)); // Vuốt phải -> prev
+    }
+  };
 
   // ── Copy thông tin gửi khách ────────────────────────────
   const handleCopy = () => {
@@ -54,7 +94,7 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
       >
         {/* ── MODAL BOX ─────────────────────────────────── */}
         <div
-          className="relative bg-white/95 backdrop-blur-2xl rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-white/60"
+          className="relative bg-[var(--card-bg)]/95 backdrop-blur-2xl rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-[var(--border-subtle)] transition-colors duration-300"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Nút đóng X */}
@@ -68,25 +108,67 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
             ×
           </button>
 
-          {/* ── ẢNH ĐẦU TIÊN (hero) ──────────────────────── */}
+          {/* ── ẢNH ĐẦU TIÊN (hero / slider) ──────────────────────── */}
           {images.length > 0 && (
-            <div className="relative">
+            <div 
+              className="relative group overflow-hidden rounded-t-2xl h-64 sm:h-80 flex items-center justify-center bg-black/5"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
               <img
-                src={images[0]}
-                alt={room.title}
-                className="w-full h-64 sm:h-80 object-cover rounded-t-2xl cursor-pointer"
-                onClick={() => setLightboxImg(images[0])}
+                key={currentIndex}
+                src={getOptimizedImageUrl(images[currentIndex], "modal")}
+                alt={`${room.title} - ảnh ${currentIndex + 1}`}
+                loading="lazy"
+                className="w-full h-full object-cover cursor-pointer animate-[fadeIn_0.4s_ease-in-out]"
+                onClick={() => setLightboxImg(images[currentIndex])}
               />
+              
               <span
-                className={`absolute bottom-3 left-3 px-3 py-1 rounded-full text-sm font-semibold shadow
+                className={`absolute bottom-3 left-3 px-3 py-1 rounded-full text-sm font-semibold shadow z-20
                   ${isAvailable ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
               >
                 {room.status}
               </span>
+
+              {/* Số thứ tự ảnh */}
               {images.length > 1 && (
-                <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
-                  📷 {images.length} ảnh
+                <span className="absolute top-3 right-3 bg-black/50 text-white text-sm font-medium px-2.5 py-1 rounded-full z-20 shadow-sm backdrop-blur-sm">
+                  {currentIndex + 1} / {images.length}
                 </span>
+              )}
+
+              {/* Nút điều hướng Slider */}
+              {images.length > 1 && (
+                <>
+                  {/* Nút Trái */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+                    }}
+                    className="absolute top-1/2 left-3 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-black/30 hover:bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer backdrop-blur-sm shadow-md"
+                    aria-label="Ảnh trước"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                  {/* Nút Phải */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+                    }}
+                    className="absolute top-1/2 right-3 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-black/30 hover:bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all z-20 cursor-pointer backdrop-blur-sm shadow-md"
+                    aria-label="Ảnh tiếp theo"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                </>
               )}
             </div>
           )}
@@ -108,7 +190,7 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
                         : "border-transparent hover:border-gray-300"
                       }`}
                   >
-                    <img src={img} alt={`Ảnh ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={getOptimizedImageUrl(img, "card")} alt={`Ảnh ${i + 1}`} loading="lazy" className="w-full h-full object-cover" />
                     {i === 0 && (
                       <span className="absolute bottom-1 left-1 text-[10px] bg-[#FF7E5F] text-white px-1.5 py-0.5 rounded font-bold">
                         Bìa
@@ -124,18 +206,18 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
           <div className="p-6">
             {/* Tiêu đề + Giá */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
-              <h2 className="text-2xl font-bold text-gray-800 leading-tight">{room.title}</h2>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)] leading-tight">{room.title}</h2>
               <p className="text-2xl font-extrabold text-blue-600 whitespace-nowrap">{room.price}</p>
             </div>
 
             {/* Thông tin chi tiết */}
-            <div className="space-y-3 text-sm text-gray-600 mb-6">
+            <div className="space-y-3 text-sm text-[var(--text-secondary)] mb-6">
 
               {/* Địa chỉ công khai — tất cả đều thấy */}
               <div className="flex items-start gap-2">
                 <span className="mt-0.5 select-none">📍</span>
                 <div>
-                  <span className="font-medium text-gray-700">Khu vực: </span>
+                  <span className="font-medium text-[var(--text-primary)]">Khu vực: </span>
                   {room.displayAddress || room.address || "—"}
                 </div>
               </div>
@@ -154,7 +236,7 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
               {/* Trạng thái */}
               <div className="flex items-center gap-2">
                 <span className="select-none">🔍</span>
-                <span className="font-medium text-gray-700">Trạng thái:</span>
+                <span className="font-medium text-[var(--text-primary)]">Trạng thái:</span>
                 {isEditing ? (
                   <select
                     value={editStatus}
@@ -174,10 +256,34 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
               {/* Giá */}
               <div className="flex items-center gap-2">
                 <span className="select-none">💰</span>
-                <span className="font-medium text-gray-700">Giá thuê:</span>
+                <span className="font-medium text-[var(--text-primary)]">Giá thuê:</span>
                 <span className="font-semibold text-blue-600">{room.price}</span>
               </div>
             </div>
+
+            {/* ---------- NƠI HIỂN THỊ TIỆN ÍCH ---------- */}
+            {room.amenities && room.amenities.length > 0 && (
+              <div className="mb-6 border-t border-[var(--border-subtle)] pt-5">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-3 flex items-center gap-1.5 uppercase tracking-wide">
+                  ✨ Tiện ích nổi bật
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {room.amenities.map(amenity => (
+                    <div 
+                      key={amenity}
+                      className="flex flex-col items-center justify-center p-3 w-[88px] h-[82px] bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-subtle)] shadow-[0_2px_8px_-4px_rgba(0,0,0,0.1)] hover:border-[#FF7E5F]/50 hover:bg-[#FF7E5F]/5 hover:-translate-y-1 transition-all text-center cursor-default"
+                    >
+                      <div className="mb-1.5 drop-shadow-sm">
+                        {getAmenityIcon(amenity)}
+                      </div>
+                      <span className="text-[10px] sm:text-[11px] font-bold text-[var(--text-secondary)] leading-tight">
+                        {amenity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* ── NÚT HÀNH ĐỘNG ──────────────────────────── */}
             <div className="flex flex-wrap gap-3">
@@ -188,7 +294,7 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
                   border transition-all duration-200 cursor-pointer
                   ${copied
                     ? "bg-green-500 text-white border-green-500"
-                    : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-400"
+                    : "bg-[var(--bg-primary)] text-[var(--text-primary)] border-gray-300/50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-400"
                   }`}
               >
                 {copied ? "✅ Đã copy!" : "📋 Copy gửi khách"}
@@ -265,8 +371,9 @@ function RoomModal({ room, onClose, onDelete, onUpdate, onCopy }) {
           onClick={() => setLightboxImg(null)}
         >
           <img
-            src={lightboxImg}
+            src={getOptimizedImageUrl(lightboxImg, "modal")}
             alt="Full size"
+            loading="lazy"
             className="max-w-[95vw] max-h-[92vh] object-contain rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

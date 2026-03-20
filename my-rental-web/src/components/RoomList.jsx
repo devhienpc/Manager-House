@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import AddRoomForm from "./AddRoomForm";
 import RoomModal from "./RoomModal";
+import { getOptimizedImageUrl } from "../utils/cloudinary";
 
 // ==========================================
 // COMPONENT: Toast
@@ -47,7 +48,7 @@ function matchesPrice(room, priceKey) {
 // ==========================================
 function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailable, customPrice, setCustomPrice }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-8 bg-white/60 backdrop-blur-md p-4 lg:px-6 rounded-2xl shadow-sm border border-white/50">
+    <div className="flex flex-wrap items-center gap-3 mb-8 bg-[var(--card-bg)]/80 backdrop-blur-md p-4 lg:px-6 rounded-2xl shadow-sm border border-[var(--border-subtle)] transition-colors duration-300">
       {PRICE_FILTERS.map((f) => (
         <button
           key={f.key}
@@ -58,7 +59,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
           className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 cursor-pointer
             ${priceFilter === f.key
               ? "bg-[#FF7E5F] text-white border-[#FF7E5F] shadow-md scale-105"
-              : "bg-white text-gray-600 border-gray-300 hover:border-[#FF7E5F] hover:text-[#FF7E5F]"
+              : "bg-[var(--card-bg)] text-[var(--text-secondary)] border-gray-300/50 hover:border-[#FF7E5F] hover:text-[#FF7E5F]"
             }`}
         >
           {f.label}
@@ -73,7 +74,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
           setCustomPrice(e.target.value);
           if (e.target.value !== "") setPriceFilter("");
         }}
-        className="px-4 py-2 w-56 rounded-full text-sm font-semibold border border-[#FF7E5F] text-gray-700 outline-none focus:ring-2 focus:ring-[#FF7E5F]/50 transition-all duration-200"
+        className="px-4 py-2 w-56 rounded-full text-sm font-semibold border border-[#FF7E5F] bg-[var(--card-bg)] text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-[#FF7E5F]/50 transition-all duration-200"
       />
 
       <button
@@ -81,7 +82,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
         className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 cursor-pointer
           ${onlyAvailable
             ? "bg-green-500 text-white border-green-500 shadow-md scale-105"
-            : "bg-white text-gray-600 border-gray-300 hover:border-green-400 hover:text-green-500"
+            : "bg-[var(--card-bg)] text-[var(--text-secondary)] border-gray-300/50 hover:border-green-400 hover:text-green-500"
           }`}
       >
         Còn trống
@@ -107,18 +108,20 @@ function RoomCard({ room, onClick }) {
     room.imageUrls?.length ?? room.images?.length ?? 0;
 
   const address = room.displayAddress || room.address || "";
+  const optimizedThumbnail = getOptimizedImageUrl(thumbnail, "card");
 
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl overflow-hidden shadow-lg border border-white/50 cursor-pointer
+      className="group bg-[var(--card-bg)] rounded-2xl overflow-hidden shadow-lg border border-[var(--border-subtle)] cursor-pointer
         transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5"
     >
       {/* Ảnh thumbnail */}
       <div className="relative h-48 w-full overflow-hidden">
         <img
-          src={thumbnail}
+          src={optimizedThumbnail}
           alt={room.title}
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         {/* Gradient overlay */}
@@ -145,7 +148,7 @@ function RoomCard({ room, onClick }) {
         <p className="text-blue-600 font-extrabold text-lg leading-tight mb-1">
           {room.price}
         </p>
-        <h3 className="text-gray-800 font-semibold text-sm leading-snug mb-1 line-clamp-2">
+        <h3 className="text-[var(--text-primary)] font-semibold text-sm leading-snug mb-1 line-clamp-2">
           {room.title}
         </h3>
         <p className="text-gray-400 text-xs truncate">📍 {address || "—"}</p>
@@ -254,8 +257,8 @@ function RoomList() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Danh Sách Phòng Trọ</h1>
-          <p className="text-gray-400 text-sm mt-1">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] transition-colors duration-300">Danh Sách Phòng Trọ</h1>
+          <p className="text-[var(--text-secondary)] text-sm mt-1 transition-colors duration-300">
             Hiển thị <span className="font-semibold text-gray-600">{filteredRooms.length}</span>
             /{roomList.length} phòng
           </p>

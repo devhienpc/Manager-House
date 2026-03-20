@@ -13,15 +13,17 @@ public class RoomPublicDTO {
     private String status;
     private String displayAddress;  // Địa chỉ giả, công khai
     private List<String> imageUrls; // Toàn bộ ảnh
+    private List<String> amenities; // Tiện ích phòng
 
     public RoomPublicDTO(Long id, String title, String price, String status,
-                         String displayAddress, List<String> imageUrls) {
+                         String displayAddress, List<String> imageUrls, List<String> amenities) {
         this.id = id;
         this.title = title;
         this.price = price;
         this.status = status;
         this.displayAddress = displayAddress;
         this.imageUrls = imageUrls;
+        this.amenities = amenities;
     }
 
     public Long getId() { return id; }
@@ -30,4 +32,5 @@ public class RoomPublicDTO {
     public String getStatus() { return status; }
     public String getDisplayAddress() { return displayAddress; }
     public List<String> getImageUrls() { return imageUrls; }
+    public List<String> getAmenities() { return amenities; }
 }

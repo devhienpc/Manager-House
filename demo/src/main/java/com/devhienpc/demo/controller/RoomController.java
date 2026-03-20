@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,7 +46,8 @@ public class RoomController {
                             r.getStatus(),
                             r.getDisplayAddress(),
                             r.getRealAddress(),     // Địa chỉ thật — chỉ Admin thấy
-                            r.getImageUrls()        // Toàn bộ gallery
+                            r.getImageUrls(),       // Toàn bộ gallery
+                            r.getAmenities()        // Tiện ích
                     ))
                     .collect(Collectors.toList());
             return ResponseEntity.ok(adminDTOs);
@@ -59,7 +61,8 @@ public class RoomController {
                             r.getPrice(),
                             r.getStatus(),
                             r.getDisplayAddress(),  // Địa chỉ giả
-                            r.getImageUrls()        // Toàn bộ ảnh
+                            r.getImageUrls(),       // Toàn bộ ảnh
+                            r.getAmenities()        // Tiện ích
                     ))
                     .collect(Collectors.toList());
             return ResponseEntity.ok(publicDTOs);
@@ -71,6 +74,12 @@ public class RoomController {
     // ─────────────────────────────────────────────────────────────
     @PostMapping
     public ResponseEntity<Room> createRoom(@RequestBody Room room) {
+        if (room.getImageUrls() == null) {
+            room.setImageUrls(new ArrayList<>());
+        }
+        if (room.getAmenities() == null) {
+            room.setAmenities(new ArrayList<>());
+        }
         Room savedRoom = roomRepository.save(room);
         return new ResponseEntity<>(savedRoom, HttpStatus.CREATED);
     }
@@ -86,7 +95,8 @@ public class RoomController {
             room.setStatus(roomDetails.getStatus());
             room.setDisplayAddress(roomDetails.getDisplayAddress());
             room.setRealAddress(roomDetails.getRealAddress());
-            room.setImageUrls(roomDetails.getImageUrls());
+            room.setImageUrls(roomDetails.getImageUrls() != null ? roomDetails.getImageUrls() : new ArrayList<>());
+            room.setAmenities(roomDetails.getAmenities() != null ? roomDetails.getAmenities() : new ArrayList<>());
             Room updatedRoom = roomRepository.save(room);
             return new ResponseEntity<>(updatedRoom, HttpStatus.OK);
         }).orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));

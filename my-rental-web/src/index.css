@@ -1,6 +1,32 @@
 /* src/index.css — Tailwind v4 entry point */
 @import "tailwindcss";
 
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-card-bg: var(--card-bg);
+  --color-border-subtle: var(--border-subtle);
+}
+
+:root {
+  --bg-primary: #f1f5f9;
+  --bg-secondary: linear-gradient(135deg, #FFFBDB, #CCFBEE);
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --card-bg: #ffffff;
+  --border-subtle: rgba(255, 255, 255, 0.5);
+}
+
+.dark {
+  --bg-primary: #121212;
+  --bg-secondary: linear-gradient(135deg, #1f2937, #111827);
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --card-bg: #1f2937;
+  --border-subtle: rgba(255, 255, 255, 0.05);
+}
+
 /* ── Reset global styles từ Vite template mặc định ── */
 *,
 *::before,
@@ -11,11 +37,18 @@
 body {
   margin: 0;
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f1f5f9; /* Tailwind slate-100 */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Quan trọng: reset #root để KHÔNG interfere với Tailwind grid */
 #root {
   width: 100%;
   min-height: 100svh;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
 }

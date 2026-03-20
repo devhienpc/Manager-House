@@ -14,9 +14,11 @@ public class RoomAdminDTO {
     private String displayAddress;  // Địa chỉ giả, công khai
     private String realAddress;     // Địa chỉ thật, bảo mật — chỉ Admin thấy
     private List<String> imageUrls; // Toàn bộ gallery ảnh
+    private List<String> amenities; // Tiện ích phòng
 
     public RoomAdminDTO(Long id, String title, String price, String status,
-                        String displayAddress, String realAddress, List<String> imageUrls) {
+                        String displayAddress, String realAddress, 
+                        List<String> imageUrls, List<String> amenities) {
         this.id = id;
         this.title = title;
         this.price = price;
@@ -24,6 +26,7 @@ public class RoomAdminDTO {
         this.displayAddress = displayAddress;
         this.realAddress = realAddress;
         this.imageUrls = imageUrls;
+        this.amenities = amenities;
     }
 
     public Long getId() { return id; }
@@ -33,4 +36,5 @@ public class RoomAdminDTO {
     public String getDisplayAddress() { return displayAddress; }
     public String getRealAddress() { return realAddress; }
     public List<String> getImageUrls() { return imageUrls; }
+    public List<String> getAmenities() { return amenities; }
 }

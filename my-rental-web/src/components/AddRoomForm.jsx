@@ -9,21 +9,67 @@ const EMPTY_FORM = {
   priceNumber: "",
   realAddress: "",    // Địa chỉ thật — chỉ Admin thấy
   displayAddress: "", // Địa chỉ giả — hiện công khai
-  imageList: "",      // Chuỗi nhiều link, cách nhau bởi dấu phẩy
   status: "Còn trống",
 };
+
+const AMENITIES_LIST = [
+  'Máy lạnh', 'Tủ lạnh', 'Máy giặt', 
+  'Giờ giấc tự do', 'Cho nuôi thú cưng', 'Có hầm xe'
+];
 
 // ==========================================
 // COMPONENT: AddRoomForm (Modal)
 // ==========================================
 function AddRoomForm({ onAddRoom, onClose }) {
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageUrls, setImageUrls] = useState([]);
+  const [amenities, setAmenities] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const handleToggleAmenity = (amenity) => {
+    setAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity]
+    );
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handleUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const uploadedUrls = [];
+
+    try {
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "star_house_preset");
+
+        const res = await axios.post(
+          "https://api.cloudinary.com/v1_1/draervmpa/image/upload",
+          formData
+        );
+        uploadedUrls.push(res.data.secure_url);
+      }
+      
+      setImageUrls((prev) => [...prev, ...uploadedUrls]);
+      setErrors((prev) => ({ ...prev, imageList: "" }));
+    } catch (error) {
+      console.error("Lỗi upload ảnh:", error);
+      alert("Tải ảnh lên Cloudinary thất bại, vui lòng thử lại.");
+    } finally {
+      setIsUploading(false);
+      e.target.value = null; // Reset input để cho phép chọn lại cùng một file
+    }
   };
 
   const validate = () => {
@@ -36,8 +82,8 @@ function AddRoomForm({ onAddRoom, onClose }) {
       newErrors.realAddress = "Vui lòng nhập địa chỉ thật.";
     if (!form.displayAddress.trim())
       newErrors.displayAddress = "Vui lòng nhập địa chỉ hiển thị công khai.";
-    if (!form.imageList.trim())
-      newErrors.imageList = "Vui lòng nhập ít nhất 1 link ảnh.";
+    if (imageUrls.length === 0)
+      newErrors.imageList = "Vui lòng chọn ít nhất 1 ảnh.";
     return newErrors;
   };
 
@@ -51,12 +97,6 @@ function AddRoomForm({ onAddRoom, onClose }) {
 
     const priceNum = Number(form.priceNumber);
 
-    // Tách chuỗi link ảnh bằng dấu phẩy → mảng, bỏ khoảng trắng thừa
-    const imageUrls = form.imageList
-      .split(",")
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0);
-
     // Payload gửi lên Backend theo cấu trúc mới
     const newRoomPayload = {
       title:          form.title.trim(),
@@ -65,6 +105,7 @@ function AddRoomForm({ onAddRoom, onClose }) {
       realAddress:    form.realAddress.trim(),
       displayAddress: form.displayAddress.trim(),
       imageUrls,          // List<String> — backend đã hỗ trợ
+      amenities,          // Danh sách tiện ích
     };
 
     try {
@@ -83,6 +124,8 @@ function AddRoomForm({ onAddRoom, onClose }) {
       });
 
       setForm(EMPTY_FORM);
+      setImageUrls([]);
+      setAmenities([]);
       setErrors({});
     } catch (error) {
       console.error("=== LỖI KHI GỌI API ===");
@@ -183,24 +226,84 @@ function AddRoomForm({ onAddRoom, onClose }) {
             />
           </Field>
 
-          {/* Gallery ảnh — dán nhiều link cách nhau bởi dấu phẩy */}
+          {/* Gallery ảnh — upload lên Cloudinary */}
           <Field
             label={
               <span>
-                📷 Danh sách link ảnh{" "}
-                <span className="text-gray-400 font-normal text-xs">(Dán link Telegram, cách nhau bởi dấu phẩy)</span>
+                📷 Chọn ảnh phòng <span className="text-gray-400 font-normal text-xs">(Có thể chọn nhiều ảnh)</span>
               </span>
             }
             error={errors.imageList}
           >
-            <textarea
-              name="imageList"
-              value={form.imageList}
-              onChange={handleChange}
-              rows={4}
-              placeholder={"https://t.me/link1,\nhttps://t.me/link2,\nhttps://t.me/link3"}
-              className={`${inputClass(errors.imageList)} resize-none`}
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleUpload}
+              disabled={isUploading}
+              className={`${inputClass(errors.imageList)} file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-[#FF7E5F]/10 file:text-[#FF7E5F] hover:file:bg-[#FF7E5F]/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed w-full`}
             />
+
+            {/* Thông báo đang tải ảnh */}
+            {isUploading && (
+              <p className="text-sm font-medium text-blue-600 mt-2 flex items-center gap-2 animate-pulse">
+                <span className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></span>
+                Đang tải ảnh lên (Vui lòng chờ)...
+              </p>
+            )}
+
+            {/* Danh sách ảnh đã upload */}
+            {imageUrls.length > 0 && (
+              <div className="flex gap-2 mt-3 overflow-x-auto pb-2 scrollbar-hide">
+                {imageUrls.map((url, index) => (
+                  <div key={index} className="relative w-20 h-20 shrink-0">
+                    <img src={url} alt={`Preview ${index}`} className="w-full h-full object-cover rounded-lg shadow-sm border" />
+                    <button 
+                      type="button" 
+                      onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== index))}
+                      className="absolute -top-1.5 -right-1.5 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs hover:bg-red-600 cursor-pointer shadow-md"
+                      title="Xóa ảnh này"
+                    >&times;</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Field>
+
+          {/* Tiện ích phòng */}
+          <Field label={<span>✨ Tiện ích phòng</span>}>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {AMENITIES_LIST.map((amenity) => {
+                const isSelected = amenities.includes(amenity);
+                return (
+                  <label
+                    key={amenity}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border cursor-pointer transition-all select-none
+                      ${isSelected
+                        ? "bg-[#FF7E5F]/10 border-[#FF7E5F] text-[#FF7E5F] shadow-sm"
+                        : "bg-white border-gray-300 text-gray-600 hover:border-[#FF7E5F]/50"
+                      }`}
+                  >
+                    <input
+                      type="checkbox"
+                      className="hidden"
+                      checked={isSelected}
+                      onChange={() => handleToggleAmenity(amenity)}
+                    />
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors
+                      ${isSelected ? 'bg-[#FF7E5F] border-[#FF7E5F]' : 'border-gray-400 bg-white'}`}
+                    >
+                      {isSelected && (
+                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    {amenity}
+                  </label>
+                );
+              })}
+            </div>
           </Field>
 
           {/* Trạng thái */}

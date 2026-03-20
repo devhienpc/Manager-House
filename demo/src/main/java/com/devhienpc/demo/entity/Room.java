@@ -1,7 +1,8 @@
 package com.devhienpc.demo.entity;
 
-import com.devhienpc.demo.converter.StringListConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,29 +22,38 @@ public class Room {
     private String status;
 
     // ── Địa chỉ bảo mật 2 lớp ──────────────────────────────
-    @Column(name = "display_address", columnDefinition = "TEXT")
+    @Column(name = "display_address")
     private String displayAddress;  // Địa chỉ giả, hiển thị công khai
 
-    @Column(name = "real_address", columnDefinition = "TEXT")
+    @Column(name = "real_address")
     private String realAddress;     // Địa chỉ thật, chỉ Admin thấy
 
-    // ── Gallery nhiều ảnh ───────────────────────────────────
-    // Lưu dưới dạng JSON TEXT: ["url1","url2","url3"]
-    @Convert(converter = StringListConverter.class)
-    @Column(name = "image_urls", columnDefinition = "TEXT")
+    // ── Gallery nhiều ảnh (Lưu dưới dạng PostgreSQL Array) ──
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "image_urls", columnDefinition = "text[]")
     private List<String> imageUrls = new ArrayList<>();
 
+    // ── Tiện ích phòng (Lưu dưới dạng PostgreSQL Array) ────
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "amenities", columnDefinition = "text[]")
+    private List<String> amenities = new ArrayList<>();
+
     // ── Constructors ────────────────────────────────────────
-    public Room() {}
+    public Room() {
+        this.imageUrls = new ArrayList<>();
+        this.amenities = new ArrayList<>();
+    }
 
     public Room(String title, String price, String status,
-                String displayAddress, String realAddress, List<String> imageUrls) {
+                String displayAddress, String realAddress, 
+                List<String> imageUrls, List<String> amenities) {
         this.title = title;
         this.price = price;
         this.status = status;
         this.displayAddress = displayAddress;
         this.realAddress = realAddress;
         this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>();
+        this.amenities = amenities != null ? amenities : new ArrayList<>();
     }
 
     // ── Getters & Setters ────────────────────────────────────
@@ -66,5 +76,12 @@ public class Room {
     public void setRealAddress(String realAddress) { this.realAddress = realAddress; }
 
     public List<String> getImageUrls() { return imageUrls; }
-    public void setImageUrls(List<String> imageUrls) { this.imageUrls = imageUrls; }
+    public void setImageUrls(List<String> imageUrls) { 
+        this.imageUrls = imageUrls != null ? imageUrls : new ArrayList<>(); 
+    }
+
+    public List<String> getAmenities() { return amenities; }
+    public void setAmenities(List<String> amenities) {
+        this.amenities = amenities != null ? amenities : new ArrayList<>();
+    }
 }

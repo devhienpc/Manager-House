@@ -1,8 +1,9 @@
 // src/components/Navbar.jsx
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useDarkMode } from "../hooks/useDarkMode";
 import myLogo from "../assets/logo.png";
-import { Phone, Facebook } from "lucide-react";
+import { Phone, Facebook, Moon, Sun } from "lucide-react";
 
 const ZaloIcon = ({ size = 24, className = "" }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -13,9 +14,10 @@ const ZaloIcon = ({ size = 24, className = "" }) => (
 
 function Navbar() {
   const { isLoggedIn, logout } = useAuth();
+  const [isDarkMode, toggleDarkMode] = useDarkMode();
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+    <nav className="bg-[var(--card-bg)] border-b border-[var(--border-subtle)] shadow-sm sticky top-0 z-40 transition-colors duration-300">
       <div className="w-full px-6 py-4 flex items-center justify-between">
         {/* Logo + Tên App */}
         <Link to="/" className="flex items-center gap-3 font-black text-3xl tracking-tight">
@@ -30,10 +32,19 @@ function Navbar() {
         </Link>
 
         {/* Phần phải: Liên hệ + Trạng thái đăng nhập */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 sm:gap-6">
 
-          {/* Thông tin liên hệ */}
-          <div className="hidden sm:flex items-center gap-5 border-r border-gray-200 pr-6">
+          {/* Nút Dark Mode */}
+          <button 
+            onClick={toggleDarkMode} 
+            className="p-2 rounded-full hover:bg-black/10 transition-colors cursor-pointer text-[var(--text-primary)]"
+            title={isDarkMode ? "Chuyển sang Giao diện Sáng" : "Chuyển sang Giao diện Tối"}
+          >
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+
+          {/* Thông báo liên hệ */}
+          <div className="hidden sm:flex items-center gap-5 border-r border-[var(--border-subtle)] pr-6">
             <a
               href="tel:0325855304"
               className="flex items-center gap-1.5 text-gray-600 hover:text-[#FF7E5F] transition-all hover:scale-110"
@@ -68,8 +79,8 @@ function Navbar() {
           {isLoggedIn ? (
             // ĐÃ ĐĂNG NHẬP: hiện tên + nút Đăng xuất
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">
-                👤 Xin chào, <span className="font-semibold text-gray-800">Admin</span>
+              <span className="text-sm text-[var(--text-secondary)]">
+                👤 Xin chào, <span className="font-semibold text-[var(--text-primary)]">Admin</span>
               </span>
               <button
                 onClick={logout}

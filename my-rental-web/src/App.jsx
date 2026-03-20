@@ -18,8 +18,8 @@ function App() {
 
         {/* Nội dung trang thay đổi theo URL */}
         <main 
-          className="min-h-screen py-8 relative"
-          style={{ background: "linear-gradient(135deg, #FFFBDB, #CCFBEE)" }}
+          className="min-h-screen py-8 relative transition-colors duration-300"
+          style={{ backgroundImage: "var(--bg-secondary)" }}
         >
           <Routes>
             <Route path="/" element={<RoomList />} />
