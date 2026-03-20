@@ -30,14 +30,14 @@ function Toast({ message, visible }) {
 const PRICE_FILTERS = [
   { label: "Tất cả", key: "all" },
   { label: "< 3 triệu", key: "lt3" },
-  { label: "3 - 5 triệu", key: "3to5" },
+  { label: "< 4 triệu", key: "lt4" },
   { label: "> 5 triệu", key: "gt5" },
 ];
 
 function matchesPrice(room, priceKey) {
-  if (priceKey === "all") return true;
+  if (priceKey === "all" || !priceKey) return true;
   if (priceKey === "lt3") return room.priceNumber < 3000000;
-  if (priceKey === "3to5") return room.priceNumber >= 3000000 && room.priceNumber <= 5000000;
+  if (priceKey === "lt4") return room.priceNumber < 4000000;
   if (priceKey === "gt5") return room.priceNumber > 5000000;
   return true;
 }
@@ -45,22 +45,37 @@ function matchesPrice(room, priceKey) {
 // ==========================================
 // 3. COMPONENT: FilterBar
 // ==========================================
-function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailable }) {
+function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailable, customPrice, setCustomPrice }) {
   return (
     <div className="flex flex-wrap items-center gap-2 mb-8">
       {PRICE_FILTERS.map((f) => (
         <button
           key={f.key}
-          onClick={() => setPriceFilter(f.key)}
+          onClick={() => {
+            setPriceFilter(f.key);
+            setCustomPrice("");
+          }}
           className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 cursor-pointer
             ${priceFilter === f.key
-              ? "bg-blue-600 text-white border-blue-600 shadow-md scale-105"
-              : "bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-500"
+              ? "bg-[#FF7E5F] text-white border-[#FF7E5F] shadow-md scale-105"
+              : "bg-white text-gray-600 border-gray-300 hover:border-[#FF7E5F] hover:text-[#FF7E5F]"
             }`}
         >
           {f.label}
         </button>
       ))}
+
+      <input
+        type="number"
+        placeholder="Nhập giá phòng cần tìm..."
+        value={customPrice}
+        onChange={(e) => {
+          setCustomPrice(e.target.value);
+          if (e.target.value !== "") setPriceFilter("");
+        }}
+        className="px-4 py-2 w-56 rounded-full text-sm font-semibold border border-[#FF7E5F] text-gray-700 outline-none focus:ring-2 focus:ring-[#FF7E5F]/50 transition-all duration-200"
+      />
+
       <button
         onClick={() => setOnlyAvailable((p) => !p)}
         className={`px-4 py-2 rounded-full text-sm font-semibold border transition-all duration-200 cursor-pointer
@@ -140,6 +155,7 @@ function RoomList() {
 
   const [roomList, setRoomList] = useState([]);
   const [priceFilter, setPriceFilter] = useState("all");
+  const [customPrice, setCustomPrice] = useState("");
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -196,7 +212,15 @@ function RoomList() {
   };
 
   const filteredRooms = roomList.filter((room) => {
-    const priceMatch = matchesPrice(room, priceFilter);
+    let priceMatch = true;
+    
+    if (customPrice && !isNaN(customPrice)) {
+      const targetPrice = parseInt(customPrice, 10);
+      priceMatch = room.priceNumber >= targetPrice - 100000 && room.priceNumber <= targetPrice + 100000;
+    } else {
+      priceMatch = matchesPrice(room, priceFilter);
+    }
+
     const statusMatch = onlyAvailable ? room.status === "Còn trống" : true;
     return priceMatch && statusMatch;
   });
@@ -231,6 +255,8 @@ function RoomList() {
           setPriceFilter={setPriceFilter}
           onlyAvailable={onlyAvailable}
           setOnlyAvailable={setOnlyAvailable}
+          customPrice={customPrice}
+          setCustomPrice={setCustomPrice}
         />
       </div>
 

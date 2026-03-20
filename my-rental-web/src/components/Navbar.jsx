@@ -7,10 +7,13 @@ function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
-      <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+      <div className="w-full px-6 py-4 flex items-center justify-between">
         {/* Logo + Tên App */}
-        <Link to="/" className="flex items-center gap-2 text-blue-600 font-bold text-lg">
-          🏠 <span>ManagerHouse</span>
+        <Link to="/" className="flex items-center gap-2 font-black text-3xl tracking-tight">
+          <span className="text-[1.2em] drop-shadow-sm">🏠</span>
+          <span className="bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] text-transparent bg-clip-text">
+            Manager House
+          </span>
         </Link>
 
         {/* Phần phải: trạng thái đăng nhập */}
