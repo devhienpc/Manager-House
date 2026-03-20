@@ -1,0 +1,58 @@
+name: Deploy React Vite to GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    # THIẾT LẬP THƯ MỤC LÀM VIỆC LÀ my-rental-web
+    defaults:
+      run:
+        working-directory: ./my-rental-web
+
+    steps:
+      - name: Tải code từ Repository
+        uses: actions/checkout@v4
+
+      - name: Cài đặt Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: ./my-rental-web/package-lock.json
+
+      - name: Cài đặt thư viện (Dependencies)
+        run: npm ci
+
+      - name: Build ứng dụng (Tạo thư mục dist)
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      - name: Cấu hình GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload thư mục dist
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./my-rental-web/dist" # Trỏ tới đúng thư mục dist
+
+      - name: Triển khai (Deploy) lên GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
