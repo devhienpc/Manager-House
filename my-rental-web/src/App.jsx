@@ -4,6 +4,7 @@ import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import RoomList from "./components/RoomList";
 import LoginPage from "./components/LoginPage";
+import ContactButtons from "./components/ContactButtons";
 
 function App() {
   return (
@@ -16,11 +17,17 @@ function App() {
         <Navbar />
 
         {/* Nội dung trang thay đổi theo URL */}
-        <main className="min-h-screen bg-slate-100 py-8">
+        <main 
+          className="min-h-screen py-8 relative"
+          style={{ background: "linear-gradient(135deg, #FFFBDB, #CCFBEE)" }}
+        >
           <Routes>
             <Route path="/" element={<RoomList />} />
             <Route path="/login" element={<LoginPage />} />
           </Routes>
+
+          {/* Các nút liên hệ động cố định dưới góc phải */}
+          <ContactButtons />
         </main>
       </AuthProvider>
     </BrowserRouter>

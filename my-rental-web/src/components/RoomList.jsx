@@ -47,7 +47,7 @@ function matchesPrice(room, priceKey) {
 // ==========================================
 function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailable, customPrice, setCustomPrice }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 mb-8">
+    <div className="flex flex-wrap items-center gap-3 mb-8 bg-white/60 backdrop-blur-md p-4 lg:px-6 rounded-2xl shadow-sm border border-white/50">
       {PRICE_FILTERS.map((f) => (
         <button
           key={f.key}
@@ -84,7 +84,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
             : "bg-white text-gray-600 border-gray-300 hover:border-green-400 hover:text-green-500"
           }`}
       >
-        ✅ Còn trống
+        Còn trống
       </button>
     </div>
   );
@@ -97,23 +97,34 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
 function RoomCard({ room, onClick }) {
   const isAvailable = room.status === "Còn trống";
 
+  // Hỗ trợ cả dữ liệu mới (imageUrls) và cũ (image)
+  const thumbnail =
+    room.imageUrls?.length > 0
+      ? room.imageUrls[0]
+      : room.firstImageUrl || room.image || "";
+
+  const totalImages =
+    room.imageUrls?.length ?? room.images?.length ?? 0;
+
+  const address = room.displayAddress || room.address || "";
+
   return (
     <div
       onClick={onClick}
-      className="group bg-white rounded-2xl overflow-hidden shadow-md cursor-pointer
-        transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+      className="group bg-white rounded-2xl overflow-hidden shadow-lg border border-white/50 cursor-pointer
+        transition-all duration-300 hover:shadow-2xl hover:-translate-y-1.5"
     >
-      {/* Ảnh — h-48 w-full object-cover để tất cả ảnh bằng nhau */}
+      {/* Ảnh thumbnail */}
       <div className="relative h-48 w-full overflow-hidden">
         <img
-          src={room.image}
+          src={thumbnail}
           alt={room.title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        {/* Gradient overlay dưới ảnh */}
+        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
 
-        {/* Badge trạng thái trên ảnh */}
+        {/* Badge trạng thái */}
         <span
           className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-bold shadow
             ${isAvailable ? "bg-green-500 text-white" : "bg-red-500 text-white"}`}
@@ -121,10 +132,10 @@ function RoomCard({ room, onClick }) {
           {room.status}
         </span>
 
-        {/* Số ảnh nếu có nhiều hơn 1 */}
-        {room.images?.length > 1 && (
+        {/* Badge số ảnh */}
+        {totalImages > 1 && (
           <span className="absolute bottom-2 right-3 text-white/80 text-xs">
-            📷 {room.images.length} ảnh
+            📷 {totalImages} ảnh
           </span>
         )}
       </div>
@@ -137,11 +148,11 @@ function RoomCard({ room, onClick }) {
         <h3 className="text-gray-800 font-semibold text-sm leading-snug mb-1 line-clamp-2">
           {room.title}
         </h3>
-        <p className="text-gray-400 text-xs truncate">📍 {room.address}</p>
+        <p className="text-gray-400 text-xs truncate">📍 {address || "—"}</p>
       </div>
 
-      {/* Thanh màu dưới cùng — thay đổi theo trạng thái */}
-      <div className={`h-1 w-full ${isAvailable ? "bg-green-400" : "bg-red-400"}`} />
+      {/* Thanh màu dưới cùng — thay đổi theo trạng thái, tăng độ dày để làm điểm nhấn */}
+      <div className={`h-1.5 w-full ${isAvailable ? "bg-green-500 shadow-[0_-2px_4px_rgba(34,197,94,0.3)]" : "bg-red-500 shadow-[0_-2px_4px_rgba(239,68,68,0.3)]"}`} />
     </div>
   );
 }
@@ -152,6 +163,9 @@ function RoomCard({ room, onClick }) {
 function RoomList() {
   const { isLoggedIn } = useAuth();
   const isAdmin = isLoggedIn;
+
+  // Token xác thực Admin — khớp với biến môi trường ADMIN_TOKEN trên Render
+  const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN || "manager-house-secret";
 
   const [roomList, setRoomList] = useState([]);
   const [priceFilter, setPriceFilter] = useState("all");
@@ -165,24 +179,34 @@ function RoomList() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms`);
+        // Gửi header X-Admin-Token khi đã đăng nhập — backend sẽ trả data đầy đủ kể cả realAddress
+        const headers = isAdmin ? { "X-Admin-Token": ADMIN_TOKEN } : {};
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/rooms`,
+          { headers }
+        );
         if (!response.ok) throw new Error("Fetch failed");
         const data = await response.json();
-        // Ánh xạ imageUrl từ backend thành image để UI hiện tại khớp
-        // parse priceNumber từ chuỗi price nếu cần cho bộ lọc, hoặc viết regex đơn giản
+
         const mappedData = data.map(r => {
-           // Giả lập giá số để filter hoạt động (vì DB đang lưu chuỗi "3.000.000đ / tháng")
-           const priceNum = parseInt(r.price.replace(/\D/g, "")) || 0;
-           return { ...r, image: r.imageUrl, priceNumber: priceNum };
+          const priceNum = parseInt((r.price || "").replace(/\D/g, "")) || 0;
+          // Hỗ trợ cả cấu trúc mới (imageUrls, firstImageUrl) và cũ (imageUrl)
+          const thumbnail =
+            r.imageUrls?.[0] ?? r.firstImageUrl ?? r.imageUrl ?? "";
+          return {
+            ...r,
+            image: thumbnail,         // thumbnail cho RoomCard
+            priceNumber: priceNum,    // số thực để bộ lọc giá hoạt động
+          };
         });
-        // Sắp xếp ID giảm dần (mới nhất lên đầu)
-        setRoomList(mappedData.sort((a,b) => b.id - a.id));
+
+        setRoomList(mappedData.sort((a, b) => b.id - a.id));
       } catch (err) {
         console.error("Lỗi lấy danh sách phòng:", err);
       }
     };
     fetchRooms();
-  }, []);
+  }, [isAdmin]);
 
   const showToast = () => {
     setToastVisible(true);
@@ -230,7 +254,7 @@ function RoomList() {
       {/* ── HEADER ── */}
       <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">🏠 Danh Sách Phòng Trọ</h1>
+          <h1 className="text-3xl font-bold text-gray-800">Danh Sách Phòng Trọ</h1>
           <p className="text-gray-400 text-sm mt-1">
             Hiển thị <span className="font-semibold text-gray-600">{filteredRooms.length}</span>
             /{roomList.length} phòng

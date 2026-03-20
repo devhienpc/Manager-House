@@ -59,9 +59,7 @@ public class RoomController {
                             r.getPrice(),
                             r.getStatus(),
                             r.getDisplayAddress(),  // Địa chỉ giả
-                            r.getImageUrls() != null && !r.getImageUrls().isEmpty()
-                                    ? r.getImageUrls().get(0)   // Chỉ ảnh đầu tiên
-                                    : null
+                            r.getImageUrls()        // Toàn bộ ảnh
                     ))
                     .collect(Collectors.toList());
             return ResponseEntity.ok(publicDTOs);

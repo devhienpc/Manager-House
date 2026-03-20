@@ -7,8 +7,9 @@ import axios from "axios";
 const EMPTY_FORM = {
   title: "",
   priceNumber: "",
-  address: "",
-  image: "",
+  realAddress: "",    // Địa chỉ thật — chỉ Admin thấy
+  displayAddress: "", // Địa chỉ giả — hiện công khai
+  imageList: "",      // Chuỗi nhiều link, cách nhau bởi dấu phẩy
   status: "Còn trống",
 };
 
@@ -19,26 +20,27 @@ function AddRoomForm({ onAddRoom, onClose }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [errors, setErrors] = useState({});
 
-  // Cập nhật từng trường khi người dùng nhập
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    // Xóa lỗi của trường vừa chỉnh
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Kiểm tra dữ liệu trước khi thêm
   const validate = () => {
     const newErrors = {};
-    if (!form.title.trim())       newErrors.title = "Vui lòng nhập tên phòng.";
+    if (!form.title.trim())
+      newErrors.title = "Vui lòng nhập tên phòng.";
     if (!form.priceNumber || isNaN(form.priceNumber) || Number(form.priceNumber) <= 0)
       newErrors.priceNumber = "Vui lòng nhập giá hợp lệ (số > 0).";
-    if (!form.address.trim())     newErrors.address = "Vui lòng nhập địa chỉ.";
-    if (!form.image.trim())       newErrors.image = "Vui lòng nhập link ảnh.";
+    if (!form.realAddress.trim())
+      newErrors.realAddress = "Vui lòng nhập địa chỉ thật.";
+    if (!form.displayAddress.trim())
+      newErrors.displayAddress = "Vui lòng nhập địa chỉ hiển thị công khai.";
+    if (!form.imageList.trim())
+      newErrors.imageList = "Vui lòng nhập ít nhất 1 link ảnh.";
     return newErrors;
   };
 
-  // Xử lý khi nhấn "Thêm phòng"
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validate();
@@ -47,52 +49,59 @@ function AddRoomForm({ onAddRoom, onClose }) {
       return;
     }
 
-    // Tạo object gửi xuống Backend (lưu ý key imageUrl)
     const priceNum = Number(form.priceNumber);
+
+    // Tách chuỗi link ảnh bằng dấu phẩy → mảng, bỏ khoảng trắng thừa
+    const imageUrls = form.imageList
+      .split(",")
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+
+    // Payload gửi lên Backend theo cấu trúc mới
     const newRoomPayload = {
-      title: form.title.trim(),
-      price: priceNum.toLocaleString("vi-VN") + "đ / tháng",
-      address: form.address.trim(),
-      status: form.status,
-      imageUrl: form.image.trim(),
+      title:          form.title.trim(),
+      price:          priceNum.toLocaleString("vi-VN") + "đ / tháng",
+      status:         form.status,
+      realAddress:    form.realAddress.trim(),
+      displayAddress: form.displayAddress.trim(),
+      imageUrls,          // List<String> — backend đã hỗ trợ
     };
 
     try {
-      // Dùng axios gửi dữ liệu thay vì fetch
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/rooms`, newRoomPayload);
-      
-      const savedRoom = response.data; // axios tự parse JSON
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL || "http://localhost:8080"}/api/rooms`,
+        newRoomPayload
+      );
 
-      // Callback ra ngoài danh sách, chuyển API imageUrl => image cho UI tương thích
+      const savedRoom = response.data;
+
+      // Callback lên RoomList — map lại để UI tương thích
       onAddRoom({
         ...savedRoom,
-        image: savedRoom.imageUrl,
-        priceNumber: priceNum // map lại giá số để filter hoạt động
+        image: savedRoom.imageUrls?.[0] ?? "",   // Ảnh đầu tiên làm thumbnail
+        priceNumber: priceNum,
       });
-      
-      setForm(EMPTY_FORM);  // Reset form về trống
+
+      setForm(EMPTY_FORM);
       setErrors({});
     } catch (error) {
-      // In lỗi ra F12 để kiểm tra xem là 403, 404 hay 500
       console.error("=== LỖI KHI GỌI API ===");
       console.error(error);
       if (error.response) {
-        console.error("HTTP Status Code:", error.response.status);
-        console.error("Data trả về từ server:", error.response.data);
+        console.error("HTTP Status:", error.response.status);
+        console.error("Data:", error.response.data);
       }
-      alert("Lỗi khi thêm phòng vào database! Bạn hãy nhấn F12 mở Console để xem chi tiết mã lỗi.");
+      alert("Lỗi khi thêm phòng! Nhấn F12 → Console để xem chi tiết.");
     }
   };
 
   return (
-    // Lớp nền mờ (Backdrop) — bấm ra ngoài để đóng
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
-      {/* Hộp Modal — ngăn sự kiện click lan ra backdrop */}
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-fade-in"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 animate-fade-in overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -107,7 +116,6 @@ function AddRoomForm({ onAddRoom, onClose }) {
           </button>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
 
           {/* Tên phòng */}
@@ -122,7 +130,7 @@ function AddRoomForm({ onAddRoom, onClose }) {
             />
           </Field>
 
-          {/* Giá (số) */}
+          {/* Giá */}
           <Field label="Giá thuê (đồng/tháng)" error={errors.priceNumber}>
             <input
               type="number"
@@ -135,27 +143,63 @@ function AddRoomForm({ onAddRoom, onClose }) {
             />
           </Field>
 
-          {/* Địa chỉ */}
-          <Field label="Địa chỉ" error={errors.address}>
+          {/* Địa chỉ thật — bảo mật */}
+          <Field
+            label={
+              <span>
+                🔒 Địa chỉ thật{" "}
+                <span className="text-red-500 font-normal text-xs">(Bảo mật — chỉ Admin thấy)</span>
+              </span>
+            }
+            error={errors.realAddress}
+          >
             <input
               type="text"
-              name="address"
-              value={form.address}
+              name="realAddress"
+              value={form.realAddress}
               onChange={handleChange}
-              placeholder="VD: 123 Lý Tự Trọng, Quận 1, TP.HCM"
-              className={inputClass(errors.address)}
+              placeholder="VD: 123 Lý Tự Trọng, P. Bến Nghé, Q.1, TP.HCM"
+              className={inputClass(errors.realAddress)}
             />
           </Field>
 
-          {/* Link ảnh */}
-          <Field label="Link ảnh (URL)" error={errors.image}>
+          {/* Địa chỉ hiển thị — công khai */}
+          <Field
+            label={
+              <span>
+                🌐 Địa chỉ hiển thị{" "}
+                <span className="text-green-600 font-normal text-xs">(Công khai cho khách xem)</span>
+              </span>
+            }
+            error={errors.displayAddress}
+          >
             <input
-              type="url"
-              name="image"
-              value={form.image}
+              type="text"
+              name="displayAddress"
+              value={form.displayAddress}
               onChange={handleChange}
-              placeholder="https://..."
-              className={inputClass(errors.image)}
+              placeholder="VD: Khu vực Quận 1, gần Bến Thành"
+              className={inputClass(errors.displayAddress)}
+            />
+          </Field>
+
+          {/* Gallery ảnh — dán nhiều link cách nhau bởi dấu phẩy */}
+          <Field
+            label={
+              <span>
+                📷 Danh sách link ảnh{" "}
+                <span className="text-gray-400 font-normal text-xs">(Dán link Telegram, cách nhau bởi dấu phẩy)</span>
+              </span>
+            }
+            error={errors.imageList}
+          >
+            <textarea
+              name="imageList"
+              value={form.imageList}
+              onChange={handleChange}
+              rows={4}
+              placeholder={"https://t.me/link1,\nhttps://t.me/link2,\nhttps://t.me/link3"}
+              className={`${inputClass(errors.imageList)} resize-none`}
             />
           </Field>
 
@@ -183,7 +227,7 @@ function AddRoomForm({ onAddRoom, onClose }) {
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+              className="flex-1 py-2 rounded-lg bg-[#FF7E5F] text-white text-sm font-semibold hover:bg-[#e8694d] transition-colors cursor-pointer"
             >
               ➕ Thêm phòng
             </button>
@@ -209,12 +253,11 @@ function Field({ label, error, children }) {
   );
 }
 
-// Class CSS cho input (thêm viền đỏ khi có lỗi)
 function inputClass(error) {
   return `w-full border rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 transition-colors
     ${error
       ? "border-red-400 focus:ring-red-300"
-      : "border-gray-300 focus:ring-blue-400"
+      : "border-gray-300 focus:ring-[#FF7E5F]/50"
     }`;
 }
 

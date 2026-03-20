@@ -1,5 +1,7 @@
 package com.devhienpc.demo.dto;
 
+import java.util.List;
+
 /**
  * DTO dành cho khách (Guest) chưa đăng nhập.
  * Chỉ trả về thông tin công khai — KHÔNG có realAddress.
@@ -10,16 +12,16 @@ public class RoomPublicDTO {
     private String price;
     private String status;
     private String displayAddress;  // Địa chỉ giả, công khai
-    private String firstImageUrl;   // Chỉ ảnh đầu tiên
+    private List<String> imageUrls; // Toàn bộ ảnh
 
     public RoomPublicDTO(Long id, String title, String price, String status,
-                         String displayAddress, String firstImageUrl) {
+                         String displayAddress, List<String> imageUrls) {
         this.id = id;
         this.title = title;
         this.price = price;
         this.status = status;
         this.displayAddress = displayAddress;
-        this.firstImageUrl = firstImageUrl;
+        this.imageUrls = imageUrls;
     }
 
     public Long getId() { return id; }
@@ -27,5 +29,5 @@ public class RoomPublicDTO {
     public String getPrice() { return price; }
     public String getStatus() { return status; }
     public String getDisplayAddress() { return displayAddress; }
-    public String getFirstImageUrl() { return firstImageUrl; }
+    public List<String> getImageUrls() { return imageUrls; }
 }
