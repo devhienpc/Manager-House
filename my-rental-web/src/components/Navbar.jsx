@@ -26,7 +26,7 @@ function Navbar() {
             alt="Manager House Logo"
             className="h-9 w-auto object-contain shrink-0 drop-shadow-sm"
           />
-          <span className="bg-gradient-to-r from-[#FF7E5F] to-[#FEB47B] text-transparent bg-clip-text mt-1">
+          <span className="bg-gradient-to-r from-blue-500 to-cyan-400 text-transparent bg-clip-text mt-1">
             Star House
           </span>
         </Link>
@@ -58,10 +58,19 @@ function Navbar() {
               href="https://zalo.me/0325855304"
               target="_blank"
               rel="noreferrer"
-              className="hover:scale-110 transition-transform hover:brightness-110"
-              title="Nhắn tin Zalo"
+              className="group relative flex items-center justify-center gap-2 px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50/50 hover:bg-blue-100 transition-all hover:shadow-md cursor-pointer dark:bg-blue-900/20 dark:border-blue-700/50 dark:hover:bg-blue-900/40"
+              title="Nhắn tin Zalo để xem phòng miễn phí"
             >
-              <ZaloIcon size={24} />
+              <div className="relative flex">
+                <ZaloIcon size={22} className="relative z-10 drop-shadow-sm group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 z-20">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 border border-white"></span>
+                </span>
+              </div>
+              <span className="hidden lg:block text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wide whitespace-nowrap">
+                Liên hệ xem phòng miễn phí
+              </span>
             </a>
 
             <a

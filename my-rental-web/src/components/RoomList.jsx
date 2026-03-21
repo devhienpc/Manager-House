@@ -1,6 +1,7 @@
 // src/components/RoomList.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
+import { Heart, Search } from "lucide-react";
 import AddRoomForm from "./AddRoomForm";
 import RoomModal from "./RoomModal";
 import { getOptimizedImageUrl } from "../utils/cloudinary";
@@ -46,9 +47,45 @@ function matchesPrice(room, priceKey) {
 // ==========================================
 // 3. COMPONENT: FilterBar
 // ==========================================
-function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailable, customPrice, setCustomPrice }) {
+function FilterBar({ 
+  priceFilter, setPriceFilter, 
+  onlyAvailable, setOnlyAvailable, 
+  customPrice, setCustomPrice,
+  searchQuery, setSearchQuery,
+  showFavoritesOnly, setShowFavoritesOnly
+}) {
   return (
-    <div className="flex flex-wrap items-center gap-3 mb-8 bg-[var(--card-bg)]/80 backdrop-blur-md p-4 lg:px-6 rounded-2xl shadow-sm border border-[var(--border-subtle)] transition-colors duration-300">
+    <div className="flex flex-col gap-4 mb-8 bg-[var(--card-bg)]/80 backdrop-blur-md p-4 lg:px-6 rounded-2xl shadow-sm border border-[var(--border-subtle)] transition-colors duration-300">
+      {/* Hàng 1: Search & Yêu thích */}
+      <div className="flex flex-wrap items-center gap-3 w-full">
+        <div className="relative flex-1 min-w-[280px]">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+            <Search size={18} />
+          </div>
+          <input
+            type="text"
+            placeholder="Tìm theo tên phòng, địa chỉ, hoặc tiện ích..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2.5 w-full rounded-full text-sm font-medium border border-gray-300 bg-[var(--card-bg)] text-[var(--text-primary)] outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 dark:border-[var(--border-subtle)]"
+          />
+        </div>
+        
+        <button
+          onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-bold border transition-all duration-200 cursor-pointer
+            ${showFavoritesOnly
+              ? "bg-pink-500 text-white border-pink-500 shadow-md scale-105"
+              : "bg-[var(--card-bg)] text-pink-500 border-pink-200 hover:bg-pink-50 hover:border-pink-300 dark:hover:bg-pink-900/20"
+            }`}
+        >
+          <Heart size={18} fill={showFavoritesOnly ? "currentColor" : "none"} strokeWidth={2.5} />
+          Đã Yêu Thích
+        </button>
+      </div>
+
+      {/* Hàng 2: Lọc giá và Trạng thái */}
+      <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-[var(--border-subtle)] w-full">
       {PRICE_FILTERS.map((f) => (
         <button
           key={f.key}
@@ -87,6 +124,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
       >
         Còn trống
       </button>
+      </div>
     </div>
   );
 }
@@ -95,7 +133,7 @@ function FilterBar({ priceFilter, setPriceFilter, onlyAvailable, setOnlyAvailabl
 // 4. COMPONENT: RoomCard — SHOP-GAME TILE
 //    Bấm vào bất cứ đâu → mở RoomModal
 // ==========================================
-function RoomCard({ room, onClick }) {
+function RoomCard({ room, onClick, isFavorite, onToggleFavorite }) {
   const isAvailable = room.status === "Còn trống";
 
   // Hỗ trợ cả dữ liệu mới (imageUrls) và cũ (image)
@@ -126,6 +164,16 @@ function RoomCard({ room, onClick }) {
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+
+        {/* Nút thả tim */}
+        <button
+          onClick={(e) => onToggleFavorite(e, room.id)}
+          className={`absolute top-3 left-3 p-1.5 rounded-full shadow-md transition-all duration-300 hover:scale-110 z-10
+            ${isFavorite ? "bg-white text-pink-500" : "bg-black/30 text-white hover:bg-black/50 backdrop-blur-sm"}`}
+          title={isFavorite ? "Bỏ yêu thích" : "Yêu thích"}
+        >
+          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+        </button>
 
         {/* Badge trạng thái */}
         <span
@@ -177,6 +225,24 @@ function RoomList() {
   const [toastVisible, setToastVisible] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem("favoriteRooms");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("favoriteRooms", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (e, roomId) => {
+    e.stopPropagation();
+    setFavorites(prev => 
+      prev.includes(roomId) ? prev.filter(id => id !== roomId) : [...prev, roomId]
+    );
+  };
 
   // Lấy dữ liệu từ Backend khi load trang
   useEffect(() => {
@@ -240,7 +306,6 @@ function RoomList() {
 
   const filteredRooms = roomList.filter((room) => {
     let priceMatch = true;
-    
     if (customPrice && !isNaN(customPrice)) {
       const targetPrice = parseInt(customPrice, 10);
       priceMatch = room.priceNumber >= targetPrice - 100000 && room.priceNumber <= targetPrice + 100000;
@@ -249,7 +314,19 @@ function RoomList() {
     }
 
     const statusMatch = onlyAvailable ? room.status === "Còn trống" : true;
-    return priceMatch && statusMatch;
+
+    let searchMatch = true;
+    if (searchQuery.trim() !== "") {
+      const q = searchQuery.toLowerCase();
+      const titleMatch = room.title?.toLowerCase().includes(q);
+      const addressMatch = room.displayAddress?.toLowerCase().includes(q) || room.address?.toLowerCase().includes(q);
+      const amenitiesMatch = room.amenities?.some(a => a.toLowerCase().includes(q));
+      searchMatch = titleMatch || addressMatch || amenitiesMatch;
+    }
+
+    const favoriteMatch = showFavoritesOnly ? favorites.includes(room.id) : true;
+
+    return priceMatch && statusMatch && searchMatch && favoriteMatch;
   });
 
   return (
@@ -284,6 +361,10 @@ function RoomList() {
           setOnlyAvailable={setOnlyAvailable}
           customPrice={customPrice}
           setCustomPrice={setCustomPrice}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          showFavoritesOnly={showFavoritesOnly}
+          setShowFavoritesOnly={setShowFavoritesOnly}
         />
       </div>
 
@@ -295,6 +376,8 @@ function RoomList() {
               key={room.id}
               room={room}
               onClick={() => setSelectedRoom(room)}
+              isFavorite={favorites.includes(room.id)}
+              onToggleFavorite={toggleFavorite}
             />
           ))}
         </div>
